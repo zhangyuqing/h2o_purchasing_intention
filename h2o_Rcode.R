@@ -160,11 +160,20 @@ pred_tst_prob <- predict(mod_prob, data=as.data.frame(test))$predictions[,"TRUE"
 ranger_pred_val <- ROCR::prediction(pred_val_prob, as.data.frame(validation)$Revenue)
 ranger_pred_tst <- ROCR::prediction(pred_tst_prob, as.data.frame(test)$Revenue)
 
-ranger_f1 <- max(ROCR::performance(ranger_pred, "f")@y.values[[1]], na.rm=T)  
-ranger_accuracy <- max(ROCR::performance(ranger_pred, "acc")@y.values[[1]], na.rm=T)  
-ranger_auc <- as.numeric(ROCR::performance(ranger_pred, "auc")@y.values)
-ranger_perf <- c("Model"="RF (ranger)", "Accuracy"=ranger_accuracy, "F1"=ranger_f1, "AUC"=ranger_auc)
-print(ranger_perf)
+ranger_auc <- as.numeric(ROCR::performance(ranger_pred_tst, "auc")@y.values)
+
+ranger_perf_f_val <- ROCR::performance(ranger_pred_val, "f")
+ranger_perf_f_test <- ROCR::performance(ranger_pred_tst, "f")
+f_cutoff_val <- ranger_perf_f_val@x.values[[1]][which.max(ranger_perf_f_val@y.values[[1]])]
+f_cutoff_test <- ranger_perf_f_test@x.values[[1]][which.min(abs(ranger_perf_f_test@x.values[[1]] - f_cutoff_val))]
+ranger_f <- ranger_perf_f_test@y.values[[1]][ranger_perf_f_test@x.values[[1]]==f_cutoff_test]
+
+ranger_perf_acc_val <- ROCR::performance(ranger_pred_val, "acc")
+ranger_perf_acc_test <- ROCR::performance(ranger_pred_tst, "acc")
+acc_cutoff_val <- ranger_perf_acc_val@x.values[[1]][which.max(ranger_perf_acc_val@y.values[[1]])]
+acc_cutoff_test <- ranger_perf_acc_test@x.values[[1]][which.min(abs(ranger_perf_acc_test@x.values[[1]] - acc_cutoff_val))]
+ranger_acc <- ranger_perf_acc_test@y.values[[1]][ranger_perf_acc_test@x.values[[1]]==acc_cutoff_test]
+
 
 
 ## RF: run time compare
@@ -265,6 +274,5 @@ h2o.auc(aml_perf_test)
 h2o.auc(aml_bl_perf_test)
 
 print(h2o_rf_perf_comparison)
-#print(ranger_perf)
 print(mlp_perfs_sub)
 print(aml_comparison)
